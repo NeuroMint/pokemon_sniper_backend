@@ -4,8 +4,15 @@ from database import get_db
 from models import Card, Listing  
 from schemas import CardCreate
 from schemas import ListingCreate 
+from app.routers import cards
+from app.database import engine, Base
+from app.models.card import Card
 
 app = FastAPI()
+
+Base.metadata.create_all(bind=engine)
+
+app.include_router(cards.router)
 
 @app.get("/")
 def read_root():
