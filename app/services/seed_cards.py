@@ -25,5 +25,7 @@ def seed():
     for c in cards_to_add:
         card = Card(**c)
         db.add(card)
+        print("✅ Seed complete — cards added to database.")
+
     db.commit()
     db.close()
