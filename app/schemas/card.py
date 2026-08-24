@@ -1,4 +1,6 @@
 from pydantic import BaseModel
+from database import Base
+
 
 class CardBase(BaseModel):
     name: str
