@@ -7,6 +7,10 @@ from schemas import ListingCreate
 
 app = FastAPI()
 
+@app.get("/")
+def read_root():
+    return {"message": "Pokemon Sniper Backend is live!"}
+
 @app.get("/listings")
 def get_listings(db: Session = Depends(get_db)):
     listings = db.query(Listing).all()
