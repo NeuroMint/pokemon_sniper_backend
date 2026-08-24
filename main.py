@@ -16,6 +16,10 @@ def get_listings(db: Session = Depends(get_db)):
     listings = db.query(Listing).all()
     return listings
 
+@app.get("/cards")
+def get_cards(db: Session = Depends(get_db)):
+    return db.query(Card).all()
+
 @app.post("/listings")
 def create_listing(listing: ListingCreate, db: Session = Depends(get_db)):
     new_listing = Listing(
