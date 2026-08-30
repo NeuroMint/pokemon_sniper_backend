@@ -6,6 +6,6 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id = Column(Integer, primary_key=True, index=True)
-    card_id = Column(Integer, ForeignKey("card.id"), nullable=False)
+    card_id = Column(Integer, ForeignKey("cards.id"), nullable=False)
     threshold_price = Column(Float, nullable=False)
     triggered_at = Column(DateTime(timezone=True), server_default=func.now())

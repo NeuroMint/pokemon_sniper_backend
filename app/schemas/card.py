@@ -1,20 +1,21 @@
 from pydantic import BaseModel
-from database import Base
-
+from datetime import datetime
 
 class CardBase(BaseModel):
     name: str
-    set: str
-    number: str
-    rarity: str
-    language: str
-    variant: str
+    set_name: str
+    card_number: str
+    rarity: str | None = None
+    language: str | None = None
+    variant: str | None = None
+    image_url: str | None = None
 
 class CardCreate(CardBase):
     pass
 
-class Card(CardBase):
+class CardRead(CardBase):
     id: int
+    created_at: datetime | None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
