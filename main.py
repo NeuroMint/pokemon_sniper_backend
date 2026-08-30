@@ -5,8 +5,12 @@ from models import Card, Listing
 from schemas import CardCreate
 from schemas import ListingCreate 
 from app.routers import cards
-from app.database import engine, Base
+from app.database import Base, engine
 from app.models.card import Card
+from app.models.listings import Listing
+from app.models.price_history import PriceHistory
+from app.models.alerts import Alert
+from app.models.ingestion_logs import IngestionLog
 
 app = FastAPI()
 
