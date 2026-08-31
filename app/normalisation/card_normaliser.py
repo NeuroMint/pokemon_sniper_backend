@@ -15,7 +15,7 @@ from app.normalisation.name_normaliser import normalise_name
 
 def normalise_card(raw, db):
     # 1. Canonical set → set_id
-    canonical_set = normalise_set(raw["set"]["name"])
+    canonical_set = normalise_set(raw.get("set", {}).get("name", "Unknown Set"))
     set_id = get_set_id(db, canonical_set)
 
     # 2. Canonical rarity → rarity_id
