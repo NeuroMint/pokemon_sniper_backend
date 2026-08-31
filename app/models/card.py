@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String, DateTime
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String
 from app.database import Base
+
 
 class Card(Base):
     __tablename__ = "cards"
@@ -9,8 +9,8 @@ class Card(Base):
     name = Column(String, nullable=False)
     set_name = Column(String, nullable=False)
     card_number = Column(String, nullable=False)
-    rarity = Column(String)
-    language = Column(String, default="EN")
-    variant = Column(String)
-    image_url = Column(String)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    rarity = Column(String, nullable=True)
+    language = Column(String, nullable=False)
+    variant = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)
+    source = Column(String, nullable=False)

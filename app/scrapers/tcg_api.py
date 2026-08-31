@@ -13,12 +13,12 @@ API_URL = "https://api.pokemontcg.io/v2/cards"
 PAGE_SIZE = 250
 
 
-def fetch_cards_page(page: int, retries: int = 3600):
+def fetch_cards_page(page: int, retries: int = 5):
     url = f"{API_URL}?page={page}&pageSize={PAGE_SIZE}"
 
     for attempt in range(1, retries + 1):
         headers = {
-            "User-Agent": f"Mozilla/5.0 (ScraperBot-{random.randint(1000,9999)})"
+            "User-Agent": f"Mozilla/5.0 (ScraperBot-{random.randint(1000, 9999)})"
         }
 
         response = requests.get(url, headers=headers)
@@ -59,24 +59,6 @@ def fetch_all_cards():
     return all_cards
 
 
-def fetch_listings_for_card(card_data: dict) -> list[dict]:
-    prices = card_data.get("tcgplayer", {}).get("prices", {})
-    listings = []
-
-    for variant, price_info in prices.items():
-        market_price = price_info.get("market")
-        if market_price:
-            listings.append({
-                "price": market_price,
-                "currency": "USD",
-                "condition": variant,
-                "seller": "tcgplayer",
-                "source_listing_id": f"{card_data.get('id')}-{variant}"
-            })
-
-    return listings
-
-
 def run_tcg_api_scraper(db: Session):
     raw_cards = fetch_all_cards()
 
@@ -88,10 +70,10 @@ def run_tcg_api_scraper(db: Session):
             "rarity": raw.get("rarity"),
             "language": "EN",
             "variant": raw.get("subtypes", [None])[0],
-            "image_url": raw.get("images", {}).get("large")
+            "image_url": raw.get("images", {}).get("large"),
         }
 
         card = ingest_card(db, normalized, source="tcg_api")
 
-        # ⭐ This is the correct connection between scraper → ingestion
+        # Connect scraper → price ingestion
         ingest_prices_for_card(db, card, raw)
