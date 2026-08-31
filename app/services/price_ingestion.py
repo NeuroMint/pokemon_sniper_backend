@@ -26,7 +26,7 @@ def ingest_prices_for_card(db: Session, card: Card, raw_card_data: dict) -> None
     # Insert listings + price history
     for raw in listings:
         listing = Listing(
-            identity_id=card.id,
+            identity_id=card.identity_id,
             price=raw["price"],
             currency=raw["currency"],
             condition=raw["condition"],

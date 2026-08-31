@@ -63,17 +63,7 @@ def run_tcg_api_scraper(db: Session):
     raw_cards = fetch_all_cards()
 
     for raw in raw_cards:
-        normalized = {
-            "name": raw.get("name"),
-            "set_name": raw.get("set", {}).get("name"),
-            "card_number": raw.get("number"),
-            "rarity": raw.get("rarity"),
-            "language": "EN",
-            "variant": raw.get("subtypes", [None])[0],
-            "image_url": raw.get("images", {}).get("large"),
-        }
+        card = ingest_card(db, raw, source="tcg_api")
 
-        card = ingest_card(db, normalized, source="tcg_api")
-
-        # Connect scraper → price ingestion
         ingest_prices_for_card(db, card, raw)
+
