@@ -14,7 +14,7 @@ PAGE_SIZE = 250
 
 
 def fetch_cards_page(page: int, retries: int = 5):
-    url = f"{API_URL}?page={page}&pageSize={PAGE_SIZE}"
+    url = f"{API_URL}?page={page}&pageSize={PAGE_SIZE}&include=tcgplayer"
 
     for attempt in range(1, retries + 1):
         headers = {
