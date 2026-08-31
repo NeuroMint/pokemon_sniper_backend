@@ -3,6 +3,8 @@ from datetime import datetime
 
 from app.models.card import Card
 from app.models.ingestion_logs import IngestionLog
+from app.models.card_identity import CardIdentity
+
 
 # NEW imports
 from app.normalisation.card_normaliser import normalise_card

@@ -1,3 +1,6 @@
+from app.models.card_identity import CardIdentity
+
+
 def find_or_create_identity(db, normalized):
     identity = (
         db.query(CardIdentity)

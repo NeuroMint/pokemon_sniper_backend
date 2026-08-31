@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from app.database import Base
 from app.database import SessionLocal
+from sqlalchemy.orm import relationship
+
 
 
 class CardIdentity(Base):
@@ -17,3 +19,4 @@ class CardIdentity(Base):
     rarity_id = Column(Integer, ForeignKey("rarities.id"), nullable=True)
 
     language = Column(String, default="EN")
+    cards = relationship("Card", back_populates="identity")

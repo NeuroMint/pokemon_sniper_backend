@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.scrapers.tcg_api import run_tcg_api_scraper
-from app.services.price_ingestion import ingest_all_prices
 
 logging.basicConfig(level=logging.INFO)
 
@@ -15,7 +14,6 @@ async def scraper_loop():
         db: Session = SessionLocal()
         try:
             run_tcg_api_scraper(db)
-            ingest_all_prices(db)
             logging.info("Scheduler tick")
         finally:
             db.close()
@@ -26,7 +24,8 @@ async def scraper_loop():
 def run_price_ingestion():
     db = SessionLocal()
     try:
-        ingest_all_prices(db)
+        logging.info("Price ingestion stub running...")
+        # later: call your real price ingestion function here
     finally:
         db.close()
 
