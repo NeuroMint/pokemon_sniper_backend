@@ -3,35 +3,34 @@ import random
 import requests
 import os
 from sqlalchemy.orm import Session
+
 from app.services.ingestion import ingest_card
-from app.services.price_history import record_price_history
+from app.services.price_ingestion import ingest_prices_for_card
 
 print("RUNNING FILE:", os.path.abspath(__file__))
 
-
 API_URL = "https://api.pokemontcg.io/v2/cards"
 PAGE_SIZE = 250
+
 
 def fetch_cards_page(page: int, retries: int = 3600):
     url = f"{API_URL}?page={page}&pageSize={PAGE_SIZE}"
 
     for attempt in range(1, retries + 1):
-
-        # Randomized user-agent to avoid Cloudflare fingerprinting
         headers = {
             "User-Agent": f"Mozilla/5.0 (ScraperBot-{random.randint(1000,9999)})"
         }
 
         response = requests.get(url, headers=headers)
+
         try:
             data = response.json()
             return data.get("data", [])
         except Exception:
             print(f"TCG API returned non‑JSON response on page {page}, attempt {attempt}")
 
-            # ⭐ Exponential backoff + jitter
-            backoff = (2 ** attempt) * 0.3          # exponential growth
-            jitter = random.uniform(0.1, 0.4)       # random noise
+            backoff = (2 ** attempt) * 0.3
+            jitter = random.uniform(0.1, 0.4)
             sleep_time = backoff + jitter
 
             print(f"Sleeping {sleep_time:.2f}s before retrying page {page}...")
@@ -39,7 +38,6 @@ def fetch_cards_page(page: int, retries: int = 3600):
 
     print(f"❌ Failed to fetch page {page} after {retries} retries")
     return []
-
 
 
 def fetch_all_cards():
@@ -60,6 +58,7 @@ def fetch_all_cards():
     print(f"Total cards fetched: {len(all_cards)}")
     return all_cards
 
+
 def fetch_listings_for_card(card_data: dict) -> list[dict]:
     prices = card_data.get("tcgplayer", {}).get("prices", {})
     listings = []
@@ -78,43 +77,6 @@ def fetch_listings_for_card(card_data: dict) -> list[dict]:
     return listings
 
 
-def ingest_prices_for_card(db: Session, card, raw_card_data: dict) -> None:
-    prices = raw_card_data.get("tcgplayer", {}).get("prices", {})
-    listings = []
-
-    for variant, price_info in prices.items():
-        market_price = price_info.get("market")
-        if market_price:
-            listings.append({
-                "price": market_price,
-                "currency": "USD",
-                "condition": variant,
-                "seller": "tcgplayer",
-                "source_listing_id": f"{raw_card_data.get('id')}-{variant}"
-            })
-
-    for raw in listings:
-        listing = Listing(
-            identity_id=card.id,
-            price=raw["price"],
-            currency=raw["currency"],
-            condition=raw["condition"],
-            seller=raw["seller"],
-            source_listing_id=raw["source_listing_id"],
-        )
-        db.add(listing)
-
-        record_price_history(
-            db,
-            card_id=card.id,
-            price=raw["price"],
-            source="tcgplayer"
-        )
-
-    db.commit()
-
-
-
 def run_tcg_api_scraper(db: Session):
     raw_cards = fetch_all_cards()
 
@@ -131,4 +93,5 @@ def run_tcg_api_scraper(db: Session):
 
         card = ingest_card(db, normalized, source="tcg_api")
 
-        ingest_prices_for_card(db, card, raw)  
+        # ⭐ This is the correct connection between scraper → ingestion
+        ingest_prices_for_card(db, card, raw)
