@@ -59,11 +59,12 @@ def fetch_all_cards():
     return all_cards
 
 
+
 def run_tcg_api_scraper(db: Session):
     raw_cards = fetch_all_cards()
 
     for raw in raw_cards:
         card = ingest_card(db, raw, source="tcg_api")
 
-        ingest_prices_for_card(db, card, raw)
+        ingest_prices_for_card(db, card)
 

@@ -3,28 +3,21 @@ from sqlalchemy.orm import Session
 from app.models.listings import Listing
 from app.models.card import Card
 from app.services.price_history import record_price_history
+from app.scrapers.ebay_au import fetch_ebay_au_prices
 
 
-def ingest_prices_for_card(db: Session, card: Card, raw_card_data: dict) -> None:
-    prices = raw_card_data.get("tcgplayer", {}).get("prices", {})
-    listings = []
+def ingest_prices_for_card(db: Session, card: Card) -> None:
+    """
+    Fetch prices for a card using EBay Australia and insert listings + price history.
+    """
 
-    # Extract price variants from PokémonTCG API
-    for variant, price_info in prices.items():
-        market_price = price_info.get("market")
-        if not market_price:
-            continue
+    prices = fetch_ebay_au_prices(card.name, card.set_name)
 
-        listings.append({
-            "price": market_price,
-            "currency": "USD",
-            "condition": variant,
-            "seller": "tcgplayer",
-            "source_listing_id": f"{raw_card_data.get('id')}-{variant}",
-        })
+    if not prices:
+        print(f"[SKIP] No EBay AU prices for {card.name} ({card.set_name})")
+        return
 
-    # Insert listings + price history
-    for raw in listings:
+    for raw in prices:
         listing = Listing(
             identity_id=card.identity_id,
             price=raw["price"],
@@ -39,7 +32,8 @@ def ingest_prices_for_card(db: Session, card: Card, raw_card_data: dict) -> None
             db,
             card_id=card.id,
             price=raw["price"],
-            source="tcgplayer",
+            source="ebay_au",
         )
 
     db.commit()
+    print(f"[OK] Inserted {len(prices)} EBay AU prices for {card.name}")
