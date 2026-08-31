@@ -4,6 +4,7 @@ import requests
 import os
 from sqlalchemy.orm import Session
 from app.services.ingestion import ingest_card
+from app.services.price_history import record_price_history
 
 print("RUNNING FILE:", os.path.abspath(__file__))
 
@@ -59,6 +60,60 @@ def fetch_all_cards():
     print(f"Total cards fetched: {len(all_cards)}")
     return all_cards
 
+def fetch_listings_for_card(card_data: dict) -> list[dict]:
+    prices = card_data.get("tcgplayer", {}).get("prices", {})
+    listings = []
+
+    for variant, price_info in prices.items():
+        market_price = price_info.get("market")
+        if market_price:
+            listings.append({
+                "price": market_price,
+                "currency": "USD",
+                "condition": variant,
+                "seller": "tcgplayer",
+                "source_listing_id": f"{card_data.get('id')}-{variant}"
+            })
+
+    return listings
+
+
+def ingest_prices_for_card(db: Session, card, raw_card_data: dict) -> None:
+    prices = raw_card_data.get("tcgplayer", {}).get("prices", {})
+    listings = []
+
+    for variant, price_info in prices.items():
+        market_price = price_info.get("market")
+        if market_price:
+            listings.append({
+                "price": market_price,
+                "currency": "USD",
+                "condition": variant,
+                "seller": "tcgplayer",
+                "source_listing_id": f"{raw_card_data.get('id')}-{variant}"
+            })
+
+    for raw in listings:
+        listing = Listing(
+            identity_id=card.id,
+            price=raw["price"],
+            currency=raw["currency"],
+            condition=raw["condition"],
+            seller=raw["seller"],
+            source_listing_id=raw["source_listing_id"],
+        )
+        db.add(listing)
+
+        record_price_history(
+            db,
+            card_id=card.id,
+            price=raw["price"],
+            source="tcgplayer"
+        )
+
+    db.commit()
+
+
 
 def run_tcg_api_scraper(db: Session):
     raw_cards = fetch_all_cards()
@@ -74,4 +129,6 @@ def run_tcg_api_scraper(db: Session):
             "image_url": raw.get("images", {}).get("large")
         }
 
-        ingest_card(db, normalized, source="tcg_api")
+        card = ingest_card(db, normalized, source="tcg_api")
+
+        ingest_prices_for_card(db, card, raw)  

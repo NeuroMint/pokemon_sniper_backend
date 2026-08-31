@@ -2,35 +2,37 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from typing import List
 import asyncio
-
+import threading
 from app.database import get_db, Base, engine
-
 from app.models.card import Card
 from app.models.listings import Listing
 from app.models.price_history import PriceHistory
 from app.models.alerts import Alert
 from app.models.ingestion_logs import IngestionLog
-
 from app.schemas.card import CardCreate, CardRead
 from app.schemas.listing import ListingCreate
-
 from app.scheduler import scraper_loop
-
-from routers import cards
+from routers import cards, prices, sniper, alerts
 from routers.ingestion_logs import router as ingestion_logs_router
+
 
 app = FastAPI()
 
 
 Base.metadata.create_all(bind=engine)
 
+
 app.include_router(cards.router)
 app.include_router(ingestion_logs_router)
+app.include_router(prices.router)
+app.include_router(sniper.router)
+app.include_router(alerts.router)
 
 @app.on_event("startup")
-async def start_scheduler():
-    asyncio.create_task(scraper_loop())
-
+def start_scheduler():
+    thread = threading.Thread(target=asyncio.run, args=(scraper_loop(),))
+    thread.daemon = True
+    thread.start()
 @app.get("/")
 def read_root():
     return {"message": "Pokemon Sniper Backend is now live!"}

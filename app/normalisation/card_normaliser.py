@@ -1,5 +1,5 @@
 from app.normalisation.set_normaliser import normalise_set
-from app.services.set_lookup import get_set_id
+from app.normalisation.set_lookup import get_set_id
 
 from app.normalisation.rarity_normaliser import normalise_rarity
 from app.services.rarity_lookup import get_rarity_id
@@ -9,6 +9,8 @@ from app.services.variant_lookup import get_variant_id
 
 from app.normalisation.number_extractor import extract_number, extract_suffix
 from app.normalisation.name_normaliser import normalise_name
+
+
 
 
 def normalise_card(raw, db):

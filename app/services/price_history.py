@@ -1,0 +1,13 @@
+from sqlalchemy.orm import Session
+from datetime import datetime
+from app.models.price_history import PriceHistory
+
+def record_price_history(db: Session, card_id: int, price: float, source: str):
+    history = PriceHistory(
+        card_id=card_id,
+        price=price,
+        source=source,
+        created_at=datetime.utcnow()
+    )
+    db.add(history)
+    db.commit()
