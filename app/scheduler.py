@@ -5,33 +5,36 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import asyncio
 import logging
 import schedule
+import importlib
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.scrapers.tcg_api import run_tcg_api_scraper
+import app.scrapers.tcg_api as tcg_api
 
 logging.basicConfig(level=logging.INFO)
 
-
 async def scraper_loop():
+    # ⭐ Delay first run to avoid double-scrape on startup
+    await asyncio.sleep(10)
+
     while True:
+        importlib.reload(tcg_api)
+
         db: Session = SessionLocal()
         try:
-            run_tcg_api_scraper(db)
+            tcg_api.run_tcg_api_scraper(db)
             logging.info("Scheduler tick")
         finally:
             db.close()
 
-        await asyncio.sleep(300)  # run every 5 minutes
+        await asyncio.sleep(300)
 
 
 def run_price_ingestion():
     db = SessionLocal()
     try:
         logging.info("Price ingestion stub running...")
-        # later: call your real price ingestion function here
     finally:
         db.close()
-
 
 schedule.every(5).minutes.do(run_price_ingestion)

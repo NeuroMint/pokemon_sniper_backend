@@ -11,12 +11,21 @@ def ingest_prices_for_card(db: Session, card: Card) -> None:
     Fetch prices for a card using EBay Australia and insert listings + price history.
     """
 
-    prices = fetch_ebay_au_prices(card.name, card.set_name)
-
-    if not prices:
-        print(f"[SKIP] No EBay AU prices for {card.name} ({card.set_name})")
+    # Resolve set name from identity → set → canonical_name
+    try:
+        set_name = card.identity.set.canonical_name
+    except Exception:
+        print(f"[SKIP] Card {card.name} has no linked set")
         return
 
+    # Fetch prices from eBay AU
+    prices = fetch_ebay_au_prices(card.name, set_name)
+
+    if not prices:
+        print(f"[SKIP] No EBay AU prices for {card.name} ({set_name})")
+        return
+
+    # Insert listings + price history
     for raw in prices:
         listing = Listing(
             identity_id=card.identity_id,

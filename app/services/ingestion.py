@@ -3,8 +3,6 @@ from datetime import datetime
 
 from app.models.card import Card
 from app.models.ingestion_logs import IngestionLog
-from app.models.card_identity import CardIdentity
-
 
 # NEW imports
 from app.normalisation.card_normaliser import normalise_card
@@ -38,13 +36,27 @@ def ingest_card(db: Session, raw_card: dict, source: str = "unknown"):
         # 3. Insert card instance (linked to identity)
         new_card = Card(
             identity_id=identity.id,
-            rarity_id=normalized["rarity_id"],
-            variant_id=normalized["variant_id"],
+
+            # Basic fields
+            name=normalized["name"],
+            card_number=normalized["card_number"],  # FIXED
+
+            # Canonical fields
             number=normalized["number"],
             suffix=normalized["suffix"],
-            language=normalized["language"],
+
+            # Foreign keys
+            set_id=normalized["set_id"],
+            rarity_id=normalized["rarity_id"],
+            variant_id=normalized["variant_id"],
+            language_id=normalized["language_id"],
+
+            # Images
             image_large=normalized["image_large"],
             image_small=normalized["image_small"],
+
+            # Source
+            source=source,
         )
 
         db.add(new_card)
@@ -58,5 +70,7 @@ def ingest_card(db: Session, raw_card: dict, source: str = "unknown"):
         return new_card
 
     except Exception as e:
-        log_ingestion(db, source, "error", str(e))
+        # Log failure with card name if possible
+        name = raw_card.get("name", "UNKNOWN")
+        log_ingestion(db, source, "error", f"{name}: {e}")
         raise

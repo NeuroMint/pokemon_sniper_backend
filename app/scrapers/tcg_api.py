@@ -1,3 +1,5 @@
+print("[DEBUG] Loaded tcg_api.py from:", __file__)
+
 import time
 import random
 import os
@@ -7,7 +9,6 @@ from tls_client import Session as TLS_Session
 from app.services.ingestion import ingest_card
 from app.services.price_ingestion import ingest_prices_for_card
 
-# --- Colour Class ---
 class C:
     RED = "\033[91m"
     GREEN = "\033[92m"
@@ -28,90 +29,104 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
 ]
 
+def create_tls_session():
+    tls = TLS_Session(
+        client_identifier=random.choice([
+            "chrome_131",
+            "chrome_130",
+            "chrome_129",
+            "firefox_130",
+            "safari_17_0",
+        ])
+    )
+    print("[DEBUG] Created new TLS session with fingerprint:", tls.client_identifier)
+    return tls
 
-def fetch_cards_page(page: int, retries: int = 5):
+def fetch_cards_page(tls, page: int, retries: int = 5):
     url = f"{API_URL}?page={page}&pageSize={PAGE_SIZE}&include=tcgplayer"
 
+    headers = {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept": "application/json",
+        "Accept-Language": random.choice([
+            "en-US,en;q=0.9",
+            "en-AU,en;q=0.8",
+            "en-GB,en;q=0.7",
+        ]),
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Origin": "https://api.pokemontcg.io",
+        "Referer": "https://api.pokemontcg.io/",
+    }
+
     for attempt in range(1, retries + 1):
-
-        # --- Rotate TLS fingerprint ---
-        session = TLS_Session(
-            client_identifier=random.choice([
-                "chrome_127",
-                "chrome_126",
-                "chrome_125",
-                "firefox_128",
-            ])
-        )
-
-        # --- Rotate headers ---
-        headers = {
-            "User-Agent": random.choice(USER_AGENTS),
-            "Accept-Language": random.choice([
-                "en-US,en;q=0.9",
-                "en-AU,en;q=0.8",
-                "en-GB,en;q=0.7",
-            ]),
-            "Accept-Encoding": "gzip, deflate, br",
-            "sec-ch-ua": '"Chromium";v="127", "Not=A?Brand";v="99"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": random.choice(["Windows", "macOS", "Linux"]),
-            "sec-fetch-site": "none",
-            "sec-fetch-mode": "navigate",
-            "sec-fetch-user": "?1",
-            "sec-fetch-dest": "document",
-        }
-
-        # --- TLS-client request with retry ---
         try:
-            response = session.get(url, headers=headers)
-
+            response = tls.get(url, headers=headers)
         except Exception as e:
-            print(f"{C.RED}[SNIPER] TLS-client error on page {page}, attempt {attempt}: {e}{C.RESET}")
-
-            backoff = (2 ** attempt) * 0.3
-            jitter = random.uniform(0.2, 0.9)
-            sleep_time = backoff + jitter
-
-            print(f"{C.BLUE}[SNIPER] Sleeping {sleep_time:.2f}s before retrying page {page}...{C.RESET}")
-            time.sleep(sleep_time)
+            print(f"{C.RED}[SNIPER] TLS error on page {page}, attempt {attempt}: {e}{C.RESET}")
+            sleep = (2 ** attempt) * 0.3 + random.uniform(0.2, 0.9)
+            print(f"{C.BLUE}[SNIPER] Sleeping {sleep:.2f}s...{C.RESET}")
+            time.sleep(sleep)
             continue
 
-        # --- JSON parsing ---
         try:
             data = response.json()
-            return data.get("data", [])
+            cards = data.get("data", [])
+
+            if cards:
+                return cards
+
+            print(f"{C.YELLOW}[SNIPER] Empty page {page}, attempt {attempt}{C.RESET}")
+            sleep = (2 ** attempt) * 0.3 + random.uniform(0.2, 0.9)
+            print(f"{C.BLUE}[SNIPER] Sleeping {sleep:.2f}s...{C.RESET}")
+            time.sleep(sleep)
 
         except Exception:
             print(f"{C.YELLOW}[SNIPER] Non‑JSON response on page {page}, attempt {attempt}{C.RESET}")
+            print("[DEBUG] Raw response text:")
+            print(response.text[:500])
+            sleep = (2 ** attempt) * 0.3 + random.uniform(0.2, 0.9)
+            print(f"{C.BLUE}[SNIPER] Sleeping {sleep:.2f}s...{C.RESET}")
+            time.sleep(sleep)
 
-            backoff = (2 ** attempt) * 0.3
-            jitter = random.uniform(0.2, 0.9)
-            sleep_time = backoff + jitter
-
-            print(f"{C.BLUE}[SNIPER] Sleeping {sleep_time:.2f}s before retrying page {page}...{C.RESET}")
-            time.sleep(sleep_time)
-
-    print(f"{C.RED}[SNIPER] ❌ Failed to fetch page {page} after {retries} retries{C.RESET}")
+    print(f"{C.RED}[SNIPER] ❌ Failed page {page} after {retries} retries{C.RESET}")
     return []
 
 
 def fetch_all_cards():
     all_cards = []
     page = 1
+    tls = create_tls_session()
+    pages_in_batch = 0
+    consecutive_empty = 0
 
-    while True:
-        raw_cards = fetch_cards_page(page)
+    while page <= 2000:
+        raw_cards = fetch_cards_page(tls, page)
         print(f"{C.CYAN}[SNIPER] Page {page} count: {len(raw_cards)}{C.RESET}")
 
         if not raw_cards:
-            print(f"{C.MAGENTA}[SNIPER] ⚠️ No more cards returned — stopping pagination{C.RESET}")
-            break
+            consecutive_empty += 1
+            if consecutive_empty >= 3:
+                print(f"{C.MAGENTA}[SNIPER] ⚠️ No more cards after {consecutive_empty} empty pages — stopping pagination{C.RESET}")
+                print(f"{C.GREEN}[SNIPER] Total cards fetched: {len(all_cards)}{C.RESET}")
+                return all_cards
+            page += 1
+            continue
 
+        consecutive_empty = 0
         all_cards.extend(raw_cards)
         page += 1
+        pages_in_batch += 1
 
-    print(f"{C.GREEN}[SNIPER] Total cards fetched: {len(all_cards)}{C.RESET}")
+        time.sleep(1.2)
+
+        if pages_in_batch >= 5:
+            print(f"{C.BLUE}[SNIPER] Cooling down before next batch...{C.RESET}")
+            time.sleep(5)
+            tls = create_tls_session()
+            pages_in_batch = 0
+
+    print(f"{C.GREEN}[SNIPER] Reached MAX_PAGES — stopping. Total cards fetched: {len(all_cards)}{C.RESET}")
     return all_cards
 
 
