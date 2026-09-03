@@ -104,3 +104,9 @@ async def ebay_webhook(request: Request):
 
     print("eBay event:", body)
     return {"status": "ok"}
+
+@app.get("/api/ebay/webhook")
+async def ebay_webhook_get(challenge_code: str = None):
+    if challenge_code:
+        return {"challengeResponse": VERIFICATION_TOKEN}
+    return {"status": "ok"}
