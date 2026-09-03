@@ -95,6 +95,13 @@ from fastapi import Request
 
 VERIFICATION_TOKEN = "psnipe-prod-token-verify-00000001"
 
+@app.get("/api/ebay/webhook")
+async def ebay_webhook_get(challenge_code: str = None):
+    if challenge_code:
+        return {"challengeResponse": VERIFICATION_TOKEN}
+    return {"status": "ok"}
+
+
 @app.post("/api/ebay/webhook")
 async def ebay_webhook(request: Request):
     body = await request.json()
@@ -103,10 +110,4 @@ async def ebay_webhook(request: Request):
         return {"challengeResponse": VERIFICATION_TOKEN}
 
     print("eBay event:", body)
-    return {"status": "ok"}
-
-@app.get("/api/ebay/webhook")
-async def ebay_webhook_get(challenge_code: str = None):
-    if challenge_code:
-        return {"challengeResponse": VERIFICATION_TOKEN}
     return {"status": "ok"}
