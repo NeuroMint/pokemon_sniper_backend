@@ -2,8 +2,11 @@ from sqlalchemy.orm import Session
 
 from app.models.listings import Listing
 from app.models.card import Card
+from app.models.set import Set
 from app.services.price_history import record_price_history
-from app.scrapers.ebay_au import fetch_ebay_au_prices
+from app.scrapers.ebay_api import search_ebay_prices
+
+
 
 
 def ingest_prices_for_card(db: Session, card: Card) -> None:
@@ -11,18 +14,24 @@ def ingest_prices_for_card(db: Session, card: Card) -> None:
     Fetch prices for a card using EBay Australia and insert listings + price history.
     """
 
-    # Resolve set name from identity → set → canonical_name
-    try:
-        set_name = card.identity.set.canonical_name
-    except Exception:
-        print(f"[SKIP] Card {card.name} has no linked set")
+    # --- FIX: Avoid lazy-loading. Fetch Set directly via identity.set_id ---
+    identity = card.identity
+    if not identity or not identity.set_id:
+        print(f"[SKIP] Card {card.name} has no identity.set_id")
         return
 
+    set_obj = db.query(Set).get(identity.set_id)
+    if not set_obj:
+        print(f"[SKIP] Card {card.name} set_id={identity.set_id} missing Set row")
+        return
+
+    set_name = set_obj.canonical_name
+
     # Fetch prices from eBay AU
-    prices = fetch_ebay_au_prices(card.name, set_name)
+    prices = search_ebay_prices(card.name, set_name)
 
     if not prices:
-        print(f"[SKIP] No EBay AU prices for {card.name} ({set_name})")
+        print(f"[SKIP] No eBay API prices for {card.name} ({set_name})")
         return
 
     # Insert listings + price history

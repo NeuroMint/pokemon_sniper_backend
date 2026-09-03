@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import os
 
 BASE_URL = "https://www.ebay.com.au/sch/i.html"
+
 EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
 EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
 

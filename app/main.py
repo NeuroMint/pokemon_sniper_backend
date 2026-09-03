@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -86,3 +90,17 @@ def create_card(card: CardCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_card)
     return new_card
+
+from fastapi import Request
+
+VERIFICATION_TOKEN = "psnipe-prod-token-verify-00000001"
+
+@app.post("/api/ebay/webhook")
+async def ebay_webhook(request: Request):
+    body = await request.json()
+
+    if "challenge" in body:
+        return {"challengeResponse": VERIFICATION_TOKEN}
+
+    print("eBay event:", body)
+    return {"status": "ok"}
