@@ -101,6 +101,12 @@ async def ebay_webhook_get(challenge_code: str = None):
         return {"challengeResponse": VERIFICATION_TOKEN}
     return {"status": "ok"}
 
+@app.get("/api/ebay/webhook/")
+async def ebay_webhook_get_slash(challenge_code: str = None):
+    if challenge_code:
+        return {"challengeResponse": VERIFICATION_TOKEN}
+    return {"status": "ok"}
+
 
 @app.post("/api/ebay/webhook")
 async def ebay_webhook(request: Request):
