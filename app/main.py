@@ -55,6 +55,10 @@ def get_listings(db: Session = Depends(get_db)):
 def get_cards(db: Session = Depends(get_db)):
     return db.query(Card).all()
 
+@app.get("/api/sniper/test")
+def test_sniper(query: str):
+    return {"query": query, "results_found": True, "items": []}
+
 
 @app.post("/listings")
 def create_listing(listing: ListingCreate, db: Session = Depends(get_db)):
