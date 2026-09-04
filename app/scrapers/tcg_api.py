@@ -1,3 +1,4 @@
+# app/scrapers/tcg_api.py
 print("[DEBUG] Loaded tcg_api.py from:", __file__)
 
 import time
@@ -9,6 +10,7 @@ from tls_client import Session as TLS_Session
 from app.services.ingestion import ingest_card
 from app.services.price_ingestion import ingest_prices_for_card
 
+
 class C:
     RED = "\033[91m"
     GREEN = "\033[92m"
@@ -17,6 +19,7 @@ class C:
     MAGENTA = "\033[95m"
     CYAN = "\033[96m"
     RESET = "\033[0m"
+
 
 print(f"{C.MAGENTA}[SNIPER] Running file: {os.path.abspath(__file__)}{C.RESET}")
 
@@ -28,6 +31,7 @@ USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
 ]
+
 
 def create_tls_session():
     tls = TLS_Session(
@@ -41,6 +45,7 @@ def create_tls_session():
     )
     print("[DEBUG] Created new TLS session with fingerprint:", tls.client_identifier)
     return tls
+
 
 def fetch_cards_page(tls, page: int, retries: int = 5):
     url = f"{API_URL}?page={page}&pageSize={PAGE_SIZE}&include=tcgplayer"

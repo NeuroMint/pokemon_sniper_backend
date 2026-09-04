@@ -1,17 +1,16 @@
+# app/main.py
 from dotenv import load_dotenv
 load_dotenv()
-
 
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.models import *
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from sqlalchemy.orm import Session
 from typing import List
 import asyncio
-import threading
+
 from app.database import get_db, Base, engine
 from app.models.card import Card
 from app.models.listings import Listing
@@ -20,16 +19,14 @@ from app.models.alerts import Alert
 from app.models.ingestion_logs import IngestionLog
 from app.schemas.card import CardCreate, CardRead
 from app.schemas.listing import ListingCreate
-from app.scheduler import scraper_loop
+from app.scheduler import scraper_loop  # assume this is your main scraper loop
+
 from routers import cards, prices, sniper, alerts
 from routers.ingestion_logs import router as ingestion_logs_router
 
-
 app = FastAPI()
 
-
 Base.metadata.create_all(bind=engine)
-
 
 app.include_router(cards.router)
 app.include_router(ingestion_logs_router)
@@ -37,11 +34,13 @@ app.include_router(prices.router)
 app.include_router(sniper.router)
 app.include_router(alerts.router)
 
+
 @app.on_event("startup")
-def start_scheduler():
-    thread = threading.Thread(target=asyncio.run, args=(scraper_loop(),))
-    thread.daemon = True
-    thread.start()
+async def start_scheduler():
+    asyncio.create_task(scraper_loop())
+
+
+
 @app.get("/")
 def read_root():
     return {"message": "Pokemon Sniper Backend is now live!"}
@@ -91,15 +90,16 @@ def create_card(card: CardCreate, db: Session = Depends(get_db)):
     db.refresh(new_card)
     return new_card
 
-from fastapi import Request
 
 VERIFICATION_TOKEN = "psnipe-prod-token-verify-00000001"
+
 
 @app.get("/api/ebay/webhook")
 async def ebay_webhook_get(challenge_code: str = None):
     if challenge_code:
         return {"challengeResponse": VERIFICATION_TOKEN}
     return {"status": "ok"}
+
 
 @app.get("/api/ebay/webhook/")
 async def ebay_webhook_get_slash(challenge_code: str = None):
